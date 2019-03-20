@@ -302,7 +302,7 @@ void CLogWindow::onReceiveRemoteLog(std::string str, bool fromServer)
 			m_warnCount++;
 
 		if(m_warnChecked)
-			m_loglist.AddString(s, RGB(0, 0, 0), RGB(255, 165, 0));
+			m_loglist.AddString(s, RGB(0, 0, 0), RGB(233, 235, 254));
 	}
 	else if(logSplit[0] == L"ERROR" || logSplit[0] == L"S_ERR")
 	{
@@ -310,7 +310,7 @@ void CLogWindow::onReceiveRemoteLog(std::string str, bool fromServer)
 			m_errCount++;
 
 		if(m_errChecked)
-			m_loglist.AddString(s, RGB(0, 0, 0), RGB(255, 0, 0));
+			m_loglist.AddString(s, RGB(0, 0, 0), RGB(253, 230, 244));
 	}
 	else if(logSplit[0] == L"CRITICAL")
 	{
@@ -326,7 +326,7 @@ void CLogWindow::onReceiveRemoteLog(std::string str, bool fromServer)
 			m_infoCount++;
 
 		if(m_infoChecked)
-			m_loglist.AddString(s, RGB(0, 0, 0), RGB(237, 237,237));
+			m_loglist.AddString(s, RGB(0, 0, 0), RGB(227, 237,205));
 	}
 	else
 	{

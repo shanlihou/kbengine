@@ -39,6 +39,9 @@
 
 
 #include <afxsock.h>            // MFC socket extensions
+#include <afxcontrolbars.h>
+#include <afxwin.h>
+#include <afxext.h>
 
 
 
@@ -58,4 +61,10 @@
 #endif
 #endif
 
-
+#define FLOG(format, ...) \
+do{\
+	FILE *fp = fopen("D:\\flog\\flog.txt", "a+");\
+	fprintf(fp, "%s:%s:%d:", __FILE__, __FUNCTION__, __LINE__);\
+	fprintf(fp, format, __VA_ARGS__);\
+	fclose(fp);\
+}while(0)

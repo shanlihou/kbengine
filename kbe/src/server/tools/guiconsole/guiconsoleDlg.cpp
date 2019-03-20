@@ -189,6 +189,7 @@ public:
 			}
 
 			bhandler.newMessage(MachineInterface::onFindInterfaceAddr);
+			FLOG("get user id:%d\n", getUserUID());
 			MachineInterface::onFindInterfaceAddrArgs7::staticAddToBundle(bhandler, getUserUID(), getUsername(), 
 				dlg->componentType(), dlg->componentID(), (COMPONENT_TYPE)findComponentType, dlg->networkInterface().intTcpAddr().ip,
 				bhandler.epListen().addr().port);
@@ -410,6 +411,24 @@ BOOL CguiconsoleDlg::OnInitDialog()
 		return FALSE;
 	}
 
+#define SNAP_WIDTH 80 //the width of the combo box
+    CRect rect;
+    UINT8 index = 0;
+    while (m_ToolBar.GetItemID(index) != ID_BUTTON32785) index++;
+    m_ToolBar.SetButtonInfo(index, ID_BUTTON32785, TBBS_SEPARATOR, SNAP_WIDTH);
+    m_ToolBar.GetItemRect(index, &rect);
+
+    rect.top += 2;
+    rect.bottom += 200;
+
+    if (!m_ToolBar.m_Edit.Create(WS_VISIBLE | WS_TABSTOP,
+        rect, &m_ToolBar, ID_BUTTON32785))
+    {
+        TRACE0("Failed to create combo-box\n");
+        return FALSE;
+    }
+    ////////////////////////////////////////////////
+
 	m_ToolBar.ShowWindow(SW_SHOW);
 	RepositionBars(AFX_IDW_CONTROLBAR_FIRST, AFX_IDW_CONTROLBAR_LAST, 0);
 	
@@ -450,7 +469,10 @@ BOOL CguiconsoleDlg::OnInitDialog()
 	::SetWindowLong(m_tree.m_hWnd, GWL_STYLE, styles);
 
 	loadHistory();
+	m_tab.SetCurSel(2);
 	autoWndSize();
+	parseConfig();
+	m_ToolBar.m_Edit.SetWindowText(S2CS(m_config["uid"]));
 	updateTree();
 
 	KBEngine::ConsoleInterface::messageHandlers.add("Console::onExecScriptCommandCB", new KBEngine::ConsoleInterface::ConsoleExecCommandCBMessageHandlerArgs1, NETWORK_VARIABLE_MESSAGE, 
@@ -615,6 +637,126 @@ void CguiconsoleDlg::commitPythonCommand(CString strCommand)
 
 		saveHistory();
 	}
+}
+enum APP_TYPE
+{
+	BASE_APP = 0,
+	CELL_APP = 1
+};
+void CguiconsoleDlg::commitPythonCommandByType(CString strCommand, UINT type)
+{
+	strCommand.Replace(L"\r", L"");
+	if (strCommand.GetLength() <= 0)
+		return;
+
+	m_isUsingHistroy = false;
+
+	CString strCommand1 = strCommand;
+
+	std::wstring incmd = strCommand.GetBuffer(0);
+	std::string outcmd;
+	strutil::wchar2utf8(incmd, outcmd);
+
+
+	Network::Channel* pChannel = _networkInterface.findChannel(this->getAddrByType(type));
+	if (pChannel)
+	{
+		Network::Bundle* pBundle = Network::Bundle::createPoolObject(OBJECTPOOL_POINT);
+		if (type == BASE_APP)
+		{
+			(*pBundle).newMessage(BaseappInterface::onExecScriptCommand);
+		}
+		else
+		{
+			(*pBundle).newMessage(CellappInterface::onExecScriptCommand);
+		}
+
+		ArraySize size = outcmd.size();
+		(*pBundle) << size;
+		(*pBundle).append(outcmd.data(), size);
+		pChannel->send(pBundle);
+
+		CString str1, str2;
+		m_debugWnd.displaybufferWnd()->GetWindowText(str2);
+		wchar_t sign[10] = { L">>>" };
+		str1.Append(sign);
+		str1.Append(strCommand1);
+		g_sendData = TRUE;
+		str2 += str1;
+		m_debugWnd.displaybufferWnd()->SetWindowTextW(str2);
+
+		saveHistory();
+	}
+}
+
+void CguiconsoleDlg::addConfig(string key, string value)
+{
+	m_config[key] = value;
+	saveConfig();
+}
+
+void CguiconsoleDlg::saveConfig()
+{
+	TiXmlDocument *pDocument = new TiXmlDocument();
+
+	int i = 0;
+	std::deque<CString>::iterator iter = m_historyCommand.begin();
+	TiXmlElement *rootElement = new TiXmlElement("root");
+	pDocument->LinkEndChild(rootElement);
+
+	for (auto i : m_config)
+	{
+		TiXmlElement *rootElementChild = new TiXmlElement(i.first.c_str());
+		rootElement->LinkEndChild(rootElementChild);
+
+		TiXmlText *content = new TiXmlText(i.second.c_str());
+		rootElementChild->LinkEndChild(content);
+	}
+
+	CString appPath = GetAppPath();
+	CString fullPath = appPath + L"\\configs.xml";
+
+	char fname[4096] = { 0 };
+
+	int len = WideCharToMultiByte(CP_ACP, 0, fullPath, fullPath.GetLength(), NULL, 0, NULL, NULL);
+	WideCharToMultiByte(CP_ACP, 0, fullPath, fullPath.GetLength(), fname, len, NULL, NULL);
+	fname[len] = '\0';
+
+	pDocument->SaveFile(fname);
+}
+
+void CguiconsoleDlg::parseConfig()
+{
+	CString appPath = GetAppPath();
+	CString fullPath = appPath + L"\\configs.xml";
+
+	char fname[4096] = { 0 };
+
+	int len = WideCharToMultiByte(CP_ACP, 0, fullPath, fullPath.GetLength(), NULL, 0, NULL, NULL);
+	WideCharToMultiByte(CP_ACP, 0, fullPath, fullPath.GetLength(), fname, len, NULL, NULL);
+	fname[len + 1] = '\0';
+
+	TiXmlDocument *pDocument = new TiXmlDocument(fname);
+	if (pDocument == NULL || !pDocument->LoadFile(TIXML_ENCODING_UTF8))
+		return;
+
+	TiXmlElement *rootElement = pDocument->RootElement();
+	TiXmlNode* node = rootElement->FirstChild();
+	if (node)
+	{
+		do
+		{
+			if (node->FirstChild() != NULL)
+			{
+				std::string key = node->Value();
+				std::string c = node->FirstChild()->Value();
+				m_config[key] = c;
+			}
+		} while ((node = node->NextSibling()));
+	}
+
+	pDocument->Clear();
+	delete pDocument;
 }
 
 void CguiconsoleDlg::saveHistory()
@@ -1026,6 +1168,11 @@ void CguiconsoleDlg::updateTree()
 	for(; iter != cts.end(); iter++)
 	{
 		Components::ComponentInfos& cinfos = (*iter);
+		UINT32 filtID = atoi(m_config["uid"].c_str());
+		if (cinfos.uid != filtID)
+		{
+			continue;
+		}
 
 		HTREEITEM item = m_tree.GetChildItem(hItemRoot), hasUIDItem = NULL;
 
@@ -1048,6 +1195,7 @@ void CguiconsoleDlg::updateTree()
 		if(hasUIDItem == NULL)
 		{
 			CString s;
+			FLOG("wiil add uid:%u\n", cinfos.uid);
 			s.Format(L"uid[%u]", cinfos.uid);
 			tcitem.hParent = hItemRoot;
 			tcitem.hInsertAfter = TVI_LAST;
@@ -1349,14 +1497,62 @@ Network::Address CguiconsoleDlg::getTreeItemAddr(HTREEITEM hItem)
 	return addr;
 }
 
+
+
+Network::Address CguiconsoleDlg::getAddrByType(UINT8 type)
+{
+	char *buf;
+	if (type == 0)
+		buf = KBEngine::strutil::wchar2char(m_baseappStr.GetBuffer(0));
+	else
+		buf = KBEngine::strutil::wchar2char(m_cellappStr.GetBuffer(0));
+
+	std::string sbuf = buf;
+	free(buf);
+
+	std::string::size_type i = sbuf.find("[");
+	std::string::size_type j = sbuf.find("]");
+	sbuf = sbuf.substr(i + 1, j - 1);
+	std::string::size_type k = sbuf.find(":");
+	std::string sip, sport;
+	sip = sbuf.substr(0, k);
+	sport = sbuf.substr(k + 1, sbuf.find("]"));
+	strutil::kbe_replace(sport, "]", "");
+
+	std::map<CString, CString>::iterator mapiter = m_ipMappings.find(CString(sip.c_str()));
+	if (mapiter != m_ipMappings.end())
+	{
+		buf = KBEngine::strutil::wchar2char(mapiter->second.GetBuffer(0));
+		sip = buf;
+		free(buf);
+	}
+
+	Network::EndPoint endpoint;
+	u_int32_t address;
+	Network::Address::string2ip(sip.c_str(), address);
+	KBEngine::Network::Address addr(address, htons(atoi(sport.c_str())));
+	return addr;
+}
+
 bool CguiconsoleDlg::connectTo()
 {
 	// TODO: Add your command handler code here
-	HTREEITEM hItem = m_tree.GetSelectedItem(); 
+	HTREEITEM hItem = m_tree.GetSelectedItem();
+	CString s = m_tree.GetItemText(hItem);
+	if (s.Find(L"baseapp[", 0) != -1)
+	{ 
+		m_baseappStr = s;
+	}
+	else if (s.Find(L"cellapp[") != -1)
+	{
+		m_cellappStr = s;
+	}
+
 	KBEngine::Network::Address addr = getTreeItemAddr(hItem);
+	FLOG("ip:%s\n", addr.c_str());
 	if(addr.ip == 0)
 	{
-		::AfxMessageBox(L"no select!");
+		//::AfxMessageBox(L"no select!");
 		return false;
 	}
 	
@@ -1445,6 +1641,7 @@ void CguiconsoleDlg::OnMenu_Update()
 
 void CguiconsoleDlg::autoShowWindow()
 {
+	FLOG("auto show case:%d\n", m_tab.GetCurSel());
 	switch(m_tab.GetCurSel())
     {
     case 0:
@@ -1545,8 +1742,34 @@ void CguiconsoleDlg::OnNMClickTree1(NMHDR *pNMHDR, LRESULT *pResult)
 
 		if(checked)
 		{
-			if(!connectTo())
+			if (!connectTo())
+			{
+				if (m_tree.ItemHasChildren(hItem))
+				{
+					HTREEITEM hNextItem = m_tree.GetChildItem(hItem);
+
+					while (hNextItem != NULL)
+					{
+						Network::Address currAddr = this->getTreeItemAddr(hNextItem);
+						FLOG("curaddr:%s\n", currAddr.c_str());
+
+						m_tree.SelectItem(hNextItem);
+						BOOL subChecked = !m_tree.GetCheck(hNextItem);
+						if (subChecked)
+						{
+							connectTo();
+							m_logWnd.onConnectionState(true, currAddr);
+						}
+						else
+						{
+							closeCurrTreeSelChannel();
+						}
+						hNextItem = m_tree.GetNextItem(hNextItem, TVGN_NEXT);
+					}
+				}
+
 				return;
+			}
 
 			changeToChecked = true;
 		}

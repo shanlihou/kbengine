@@ -67,6 +67,23 @@ int CALLBACK CompareFloatFunc(LPARAM lParam1,LPARAM lParam2,LPARAM lParamSort)
 		return cs1 > cs2;
 }
 
+string CS2S(CString & cStr)
+{
+	char buf[4096] = { 0 };
+
+	int len = WideCharToMultiByte(CP_ACP, 0, cStr, cStr.GetLength(), NULL, 0, NULL, NULL);
+	WideCharToMultiByte(CP_ACP, 0, cStr, cStr.GetLength(), buf, len, NULL, NULL);
+
+	return string(buf);
+}
+
+CString S2CS(std::string & c)
+{
+	std::wstring strCommand;
+	strutil::utf82wchar(c, strCommand);
+	return CString(strCommand.data());
+}
+
 // CguiconsoleApp construction
 
 CguiconsoleApp::CguiconsoleApp()

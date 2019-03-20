@@ -58,6 +58,8 @@ struct ListSortData{
 
 int CALLBACK CompareFunc(LPARAM lParam1,LPARAM lParam2,LPARAM lParamSort);
 int CALLBACK CompareFloatFunc(LPARAM lParam1,LPARAM lParam2,LPARAM lParamSort);
+std::string CS2S(CString &cStr);
+CString S2CS(std::string &c);
 
 extern int g_diffHeight;
 extern bool g_isDestroyed;

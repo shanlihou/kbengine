@@ -13,6 +13,7 @@
 #include "GraphsWindow.h"
 #include "ConnectRemoteMachineWindow.h"
 #include "thread/threadpool.h"
+#include "CToolBarWithEdit.h"
 #include <sstream>
 
 using namespace KBEngine;
@@ -83,11 +84,20 @@ public:
 	bool startProfile(std::string name, int8 type, uint32 timinglen);
 
 	void addThreadTask(thread::TPTask* tptask);
+
+	void commitPythonCommandByType(CString strCommand, UINT type);
+
+	void addConfig(string key, string value);
+
+	void saveConfig();
+
+	void parseConfig();
 protected:
 	HICON m_hIcon;
 
 	// Generated message map functions
 	virtual BOOL OnInitDialog();
+	Network::Address getAddrByType(UINT8 type);
 
 	afx_msg void OnSysCommand(UINT nID, LPARAM lParam);
 	afx_msg void OnPaint();
@@ -128,8 +138,13 @@ private:
 	std::deque<CString> m_historyCommand;
 	int8 m_historyCommandIndex;
 	bool m_isUsingHistroy;
-	CToolBar m_ToolBar;
+	CToolBarWithEdit m_ToolBar;
 	CImageList m_ImageList;
+
+	CString m_baseappStr;
+	CString m_cellappStr;
+
+	std::map<std::string, std::string> m_config;
 
 	// Ïß³Ì³Ø
 	thread::ThreadPool threadPool_;	
@@ -142,3 +157,6 @@ public:
 	afx_msg void OnClose();
 	afx_msg void OnDestroy();
 };
+
+
+void splitCmdStr(CString &s, std::vector<CString> &retList);

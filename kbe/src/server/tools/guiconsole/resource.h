@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
-// Microsoft Visual C++ generated include file.
-// Used by guiconsole.rc
+// Microsoft Visual C++ 生成的包含文件。
+// 供 guiconsole.rc 使用
 //
 #define IDM_ABOUTBOX                    0x0010
 #define IDD_ABOUTBOX                    100
@@ -30,6 +30,7 @@
 #define IDB_ERROR1                      148
 #define IDB_INFO1                       149
 #define IDB_WARNING1                    150
+#define IDD_DIALOG2                     155
 #define IDC_TAB1                        1000
 #define IDC_LIST1                       1001
 #define IDC_EDIT1                       1002
@@ -71,6 +72,7 @@
 #define IDC_IPADDRESS3                  1043
 #define IDC_ADD_IPMAPPING               1044
 #define IDC_DEL_IPMAPPING               1045
+#define IDC_EDIT3                       1046
 #define ID_32771                        32771
 #define ID_32772                        32772
 #define ID_HELP_ABOUT                   32773
@@ -78,14 +80,15 @@
 #define ID_BUTTON32780                  32780
 #define ID_BUTTON32783                  32783
 #define ID_BUTTON32784                  32784
+#define ID_BUTTON32785                  32785
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        152
-#define _APS_NEXT_COMMAND_VALUE         32785
-#define _APS_NEXT_CONTROL_VALUE         1046
+#define _APS_NEXT_RESOURCE_VALUE        157
+#define _APS_NEXT_COMMAND_VALUE         32786
+#define _APS_NEXT_CONTROL_VALUE         1047
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
