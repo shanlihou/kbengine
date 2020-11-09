@@ -302,6 +302,8 @@ public:
 // Implementation
 protected:
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnDeltaposButSpin(NMHDR *pNMHDR, LRESULT *pResult);
 };
 
 CAboutDlg::CAboutDlg() : CDialog(CAboutDlg::IDD)
@@ -314,6 +316,7 @@ void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 }
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialog)
+	ON_NOTIFY(UDN_DELTAPOS, IDC_BUT_SPIN, &CAboutDlg::OnDeltaposButSpin)
 END_MESSAGE_MAP()
 
 
@@ -2029,4 +2032,12 @@ void CguiconsoleDlg::OnDestroy()
 
 	// TODO: Add your message handler code here
 	threadPool_.finalise();
+}
+
+
+void CAboutDlg::OnDeltaposButSpin(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMUPDOWN pNMUpDown = reinterpret_cast<LPNMUPDOWN>(pNMHDR);
+	// TODO: 在此添加控件通知处理程序代码
+	*pResult = 0;
 }

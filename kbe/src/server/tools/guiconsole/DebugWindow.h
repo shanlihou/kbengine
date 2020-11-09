@@ -23,7 +23,7 @@ public:
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 	void OnBnClickedButton1();
-	void parseButtonInfo2(UINT8 tabIndex);
+	bool parseButtonInfo2(UINT8 tabIndex);
 	void AddButton(CString &title, CString &code, UINT8 type, UINT8 index);
 
 
@@ -33,10 +33,15 @@ protected:
 	CEditSendbuffer m_sendbuffer;
 	CMFCButton m_addbutton;
 	std::vector<std::shared_ptr<CRButton>> m_buttonvec;
+	int m_index;
 public:
 	afx_msg void OnSizing(UINT fwSide, LPRECT pRect);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	virtual BOOL OnInitDialog();
 
 	void autoWndSize();
+	afx_msg void OnClickedButtonClear();
+	CButton m_clearButton;
+	CSpinButtonCtrl m_butSpin;
+	afx_msg void OnDeltaposButSpin(NMHDR *pNMHDR, LRESULT *pResult);
 };

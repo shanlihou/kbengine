@@ -301,3 +301,4 @@ Thumbs.db
 .vs
 *.obj
 kbe/tools/server/guiconsole
+assets

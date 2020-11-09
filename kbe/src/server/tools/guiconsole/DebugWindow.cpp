@@ -16,6 +16,7 @@ CguiconsoleDlg* g_dlg = static_cast<CguiconsoleDlg*>(theApp.m_pMainWnd);
 CDebugWindow::CDebugWindow(CWnd* pParent /*=NULL*/)
 	: CDialog(CDebugWindow::IDD, pParent)
 {
+	m_index = 0;
 }
 
 CDebugWindow::~CDebugWindow()
@@ -28,12 +29,16 @@ void CDebugWindow::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_EDIT1, m_displaybuffer);
 	DDX_Control(pDX, IDC_EDIT2, m_sendbuffer);
 	DDX_Control(pDX, IDC_BUTTON1, m_addbutton);
+	DDX_Control(pDX, IDC_BUTTON_CLEAR, m_clearButton);
+	DDX_Control(pDX, IDC_BUT_SPIN, m_butSpin);
 }
 
 BEGIN_MESSAGE_MAP(CDebugWindow, CDialog)
 	ON_WM_SIZING()
 	ON_WM_SIZE()
 	ON_BN_CLICKED(IDC_BUTTON1, &CDebugWindow::OnBnClickedButton1)
+	ON_BN_CLICKED(IDC_BUTTON_CLEAR, &CDebugWindow::OnClickedButtonClear)
+	ON_NOTIFY(UDN_DELTAPOS, IDC_BUT_SPIN, &CDebugWindow::OnDeltaposButSpin)
 END_MESSAGE_MAP()
 
 void createDir(const char *dirName)
@@ -46,7 +51,7 @@ void createDir(const char *dirName)
 	}
 }
 
-void CDebugWindow::parseButtonInfo2(UINT8 tabIndex)
+bool CDebugWindow::parseButtonInfo2(UINT8 tabIndex)
 {
 	CString appPath = GetAppPath();
 	CString fullPath = appPath + L"\\code";
@@ -62,7 +67,7 @@ void CDebugWindow::parseButtonInfo2(UINT8 tabIndex)
 	auto handle = _findfirst(dirName, &findData);
 	if (handle == -1)
 	{
-		return;
+		return false;
 	}
 
 	auto dirBase = std::string(dirName);
@@ -95,12 +100,14 @@ void CDebugWindow::parseButtonInfo2(UINT8 tabIndex)
 		AddButton(wTitle, wCode, uType, 0);
 
 	} while (_findnext(handle, &findData) == 0);
+	return true;
 }
 
 BOOL CDebugWindow::OnInitDialog()
 {
 	CDialog::OnInitDialog();
-	parseButtonInfo2(0);
+	m_index = ::GetPrivateProfileInt(_T("debug"), _T("buttonIndex"), 0, _T("guiconsole.ini"));
+	parseButtonInfo2(m_index);
 	return TRUE; 
 };
 
@@ -110,10 +117,12 @@ void CDebugWindow::AddButton(CString & title, CString & code, UINT8 type, UINT8 
 	DWORD dwStyle = WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON | BS_LEFTTEXT;
 	CRect rect;
 	GetClientRect(&rect);
+
+	int butWidth = int(rect.right * 0.05);
 	btn->Create(title, dwStyle,
-		CRect(5 + int(rect.right * 0.06) * (m_buttonvec.size() + 1),
+		CRect(5 + butWidth * (m_buttonvec.size() + 3),
 			int(rect.bottom * 0.70),
-			5 + int(rect.right * 0.06) * (m_buttonvec.size() + 2),
+			5 + butWidth * (m_buttonvec.size() + 4),
 			int(rect.bottom * 0.75)),
 		this, IDC_MY_BUTTON + m_buttonvec.size());
 	m_buttonvec.push_back(btn);
@@ -124,7 +133,7 @@ void CDebugWindow::OnBnClickedButton1()
 	CAddButton wnd;
 	if (wnd.DoModal() == IDOK)
 	{
-		AddButton(wnd.m_title, wnd.m_code, wnd.m_type, 0);
+		AddButton(wnd.m_title, wnd.m_code, wnd.m_type, m_index);
 		(m_buttonvec.end() - 1)->get()->saveButton();
 	}
     int ret = GetLastError();
@@ -153,131 +162,58 @@ void CDebugWindow::autoWndSize()
 	GetClientRect(&rect);
 	m_displaybuffer.MoveWindow(5, 5, rect.right, (int)(rect.bottom * 0.69), TRUE);
 	m_sendbuffer.MoveWindow(5, int(rect.bottom * 0.76), rect.right, int(rect.bottom * 0.25), TRUE);
-	m_addbutton.MoveWindow(5, int(rect.bottom * 0.70), int(rect.right * 0.05), int(rect.bottom * 0.05), TRUE);
+
+	int butWidth = int(rect.right * 0.05);
+	m_addbutton.MoveWindow(5 + butWidth * 0, int(rect.bottom * 0.70), int(rect.right * 0.05), int(rect.bottom * 0.05), TRUE);
+	m_clearButton.MoveWindow(5 + butWidth * 1, int(rect.bottom * 0.70), int(rect.right * 0.05), int(rect.bottom * 0.05), TRUE);
+	m_butSpin.MoveWindow(5 + butWidth * 2, int(rect.bottom * 0.70), int(rect.right * 0.05), int(rect.bottom * 0.05), TRUE);
 	int length = m_buttonvec.size();
 	for (int i = 0; i < length; i++)
 	{
-		m_buttonvec[i]->MoveWindow(5 + int(rect.right * 0.06) * (i + 1), int(rect.bottom * 0.70),
+		m_buttonvec[i]->MoveWindow(5 + butWidth * (i + 3), int(rect.bottom * 0.70),
 			int(rect.right * 0.05), int(rect.bottom * 0.05), TRUE);
 	}
 }
 
+void CDebugWindow::OnClickedButtonClear()
+{
+	// TODO: 在此添加控件通知处理程序代码
+	CEdit* lpEdit = (CEdit*)this->displaybufferWnd();
+	lpEdit->SetWindowText(L"");
+}
 
-//
-//
-//void CDebugWindow::saveButton2(UINT8 tabIndex)
-//{
-//	CString appPath = GetAppPath();
-//	CString fullPath = appPath + L"\\code";
-//
-//	char dirName[4096] = { 0 };
-//
-//	int len = WideCharToMultiByte(CP_ACP, 0, fullPath, fullPath.GetLength(), NULL, 0, NULL, NULL);
-//	WideCharToMultiByte(CP_ACP, 0, fullPath, fullPath.GetLength(), dirName, len, NULL, NULL);
-//	createDir(dirName);
-//
-//	sprintf(dirName + len, "\\%d", tabIndex);
-//	createDir(dirName);
-//
-//	UINT8 lastNum = m_buttoninfoVec.size() - 1;
-//	auto lastInfo = m_buttoninfoVec.end() - 1;
-//	char fileName[256];
-//	std::string out;
-//
-//	strutil::wchar2utf8(lastInfo->m_title.GetBuffer(0), out);
-//	sprintf(fileName, "%s\\%s-%d.py", dirName, out.c_str(), lastInfo->m_type);
-//
-//	std::unique_ptr<FILE, decltype(fclose)*> fp(fopen(fileName, "wb"), fclose);
-//	strutil::wchar2utf8(lastInfo->m_code.GetBuffer(0), out);
-//	fprintf(fp.get(), "%s", out.c_str());
-//}
-//
-//void CDebugWindow::saveButton()
-//{
-//
-//	TiXmlDocument *pDocument = new TiXmlDocument();
-//
-//	int i = 0;
-//	TiXmlElement *rootElement = new TiXmlElement("root");
-//	pDocument->LinkEndChild(rootElement);
-//	std::string out;
-//	char buf[2];
-//
-//	for (auto i : m_buttoninfoVec)
-//	{
-//		strutil::wchar2utf8(i.m_title.GetBuffer(0), out);
-//		TiXmlElement *rootElementChild = new TiXmlElement(out.data());
-//		rootElement->LinkEndChild(rootElementChild);
-//
-//		//CString code = i.m_code;
-//		strutil::wchar2utf8(i.m_code.GetBuffer(0), out);
-//		TiXmlText *content = new TiXmlText(out.data());
-//		rootElementChild->LinkEndChild(content);
-//
-//		/*
-//		kbe_snprintf(buf, 2, "%d", i.m_type);
-//		TiXmlElement *type = new TiXmlElement(buf);
-//		rootElementChild->LinkEndChild(type);*/
-//	}
-//
-//	CString appPath = GetAppPath();
-//	CString fullPath = appPath + L"\\buttonInfo.xml";
-//
-//	char fname[4096] = { 0 };
-//
-//	int len = WideCharToMultiByte(CP_ACP, 0, fullPath, fullPath.GetLength(), NULL, 0, NULL, NULL);
-//	WideCharToMultiByte(CP_ACP, 0, fullPath, fullPath.GetLength(), fname, len, NULL, NULL);
-//	fname[len] = '\0';
-//
-//	pDocument->SaveFile(fname);
-//}
 
-//
-//
-//void CDebugWindow::parseButtonInfo()
-//{
-//
-//	CString appPath = GetAppPath();
-//	CString fullPath = appPath + L"\\buttonInfo.xml";
-//
-//	char fname[4096] = { 0 };
-//
-//	int len = WideCharToMultiByte(CP_ACP, 0, fullPath, fullPath.GetLength(), NULL, 0, NULL, NULL);
-//	WideCharToMultiByte(CP_ACP, 0, fullPath, fullPath.GetLength(), fname, len, NULL, NULL);
-//	fname[len + 1] = '\0';
-//
-//	TiXmlDocument *pDocument = new TiXmlDocument(fname);
-//	if (pDocument == NULL)
-//		return;
-//
-//	if (!pDocument->LoadFile(TIXML_ENCODING_UTF8))
-//	{
-//		const char *errDesc = pDocument->ErrorDesc();
-//		return;
-//	}
-//
-//	TiXmlElement *rootElement = pDocument->RootElement();
-//	TiXmlNode* node = rootElement->FirstChild();
-//	if (node)
-//	{
-//		do
-//		{
-//			if (node->FirstChild() != NULL)
-//			{
-//				std::string title = node->Value();
-//				std::string code = node->FirstChild()->Value();
-//				std::string type = node->FirstChild()->NextSibling()->Value();
-//				CString wTitle(title.c_str());
-//				CString wCode(code.c_str());
-//				wCode.Replace('`', ' ');
-//				UINT8 uType = type.at(0) == '1' ? 1 : 0;
-//				AddButton(wTitle, wCode, uType, 0);
-//				m_buttoninfoVec.push_back(ButtonInfo(wTitle, wCode, uType));
-//				//std::string d = node->FirstChild()->FirstChild()->Value();
-//			}
-//		} while ((node = node->NextSibling()));
-//	}
-//
-//	pDocument->Clear();
-//	delete pDocument;
-//}
+void CDebugWindow::OnDeltaposButSpin(NMHDR *pNMHDR, LRESULT *pResult)
+{
+	LPNMUPDOWN pNMUpDown = reinterpret_cast<LPNMUPDOWN>(pNMHDR);
+	// TODO: 在此添加控件通知处理程序代码
+	*pResult = 0;
+
+	int oldIndex = m_index;
+	if (pNMUpDown->iDelta == 1) {
+		if (m_buttonvec.size() != 0)
+		{
+			m_index += 1;
+		}
+	}
+	else {
+		if (m_index > 0)
+		{
+			m_index -= 1;
+		}
+	}
+
+	if (oldIndex != m_index)
+	{
+		for (auto i : m_buttonvec)
+		{
+			i->DestroyWindow();
+		}
+		m_buttonvec.clear();
+
+		parseButtonInfo2(m_index);
+		CString value;
+		value.Format(_T("%d"), m_index);
+		::WritePrivateProfileString(_T("debug"), _T("buttonIndex"), value, _T("guiconsole.ini"));
+	}
+}

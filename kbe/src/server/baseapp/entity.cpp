@@ -902,7 +902,9 @@ void Entity::onRemoteMethodCall(Network::Channel* pChannel, MemoryStream& s)
 	s >> componentPropertyUID;
 
 	ENTITY_METHOD_UID utype = 0;
+    DEBUG_MSG("ckz:s1");
 	s >> utype;
+    DEBUG_MSG("ckz:s2");
 	
 	ScriptDefModule* pScriptModule = pScriptModule_;
 	PyObject* pyCallObject = this;
