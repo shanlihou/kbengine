@@ -97,7 +97,7 @@ bool CDebugWindow::parseButtonInfo2(UINT8 tabIndex)
 		CString wTitle(title.c_str());
 		CString wCode(code.c_str());
 		UINT8 uType = type.at(0) == '1' ? 1 : 0;
-		AddButton(wTitle, wCode, uType, 0);
+		AddButton(wTitle, wCode, uType, m_index);
 
 	} while (_findnext(handle, &findData) == 0);
 	return true;
